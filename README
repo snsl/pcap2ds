@@ -1,0 +1,62 @@
+#########
+1. install DataSeries
+
+   The following packages must be installed:
+   libboost-dev
+   libboost-thread-mt-dev
+   libboost-program-options-dev
+   libxml2
+   cmake
+   graphviz
+
+   Build DataSeries
+   
+   $ cd ~ && wget http://tesla.hpl.hp.com/opensource/deptool-bootstrap
+   $ perl deptool-bootstrap tarinit http://tesla.hpl.hp.com/opensource/sources/latest-release
+   $ cd ~/projects/DataSeries && perl ~/deptool-bootstrap build -t
+
+#########
+2. Build wireshark
+
+   The following packages must be installed:
+   libgnutls-dev
+   libgeoip-dev
+   libpcap-dev
+   libgtk2.0-dev
+   libglib2.0-dev
+   flex
+   bison
+
+   Get latest source code from http://www.wireshark.org/download.html
+
+   Untar source
+
+   $ tar xvfj wireshark-1.8.0rc2.tar.bz2
+   $ cd wireshark-1.8.0rc2
+   $ ./configure
+   $ make
+   $ sudo make install
+
+#########
+3. Build pcap2ds
+
+   Change the WIRESHARK variable in the Makefile in trace directory to
+   point to the location of the wireshark source.  Fix the DATASERIES
+   and LIBXML variables as well.
+
+   # make
+
+#########
+4. Run pcap2ds
+
+   Add DataSeries library directory to your LD_LIBRARY_PATH
+
+   # pcap2ds [-r file.pcap][-i eth0] -w output.file
+
+   -r and -i options can not be used together
+   -r file.pcap reads PCAP info from file.pcap
+   -i eth0	captures packets from interface eth0
+
+   -w outputfile writes output to output file
+   -R readfilter See http://wiki.wireshark.org/DisplayFilters for examples
+
