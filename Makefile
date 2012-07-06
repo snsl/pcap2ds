@@ -26,15 +26,18 @@ OBJS = pcap2ds.o print.o smb.o
 
 LIBS = -L/usr/local/lib -lpcap -lwireshark -lwiretap -lcrypto -lwsutil -lz `pkg-config --libs glib-2.0` -lLintel -lDataSeries -L$(DATASERIES)/lib
 
-all: pcap2ds
+all: pcap2ds ds2xml
 
 pcap2ds: config.h $(OBJS)
 	rm -f dumpcap
 	ln -s $(TSHARK_BUILD)/.libs/dumpcap
 	g++ -o $@ $(OBJS) $(TSHARK_OBJS) $(LIBS)
 
+ds2xml: DStoXMLModule.o ds2xml.o
+	g++ -o $@ $^ $(LIBS) -lxml2
+
 config.h:
 	ln -s $(TSHARK_BUILD)/config.h
-	
+
 clean:
-	rm $(OBJS) pcap2ds dumpcap
+	rm $(OBJS) pcap2ds dumpcap ds2xml
