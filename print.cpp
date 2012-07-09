@@ -1,7 +1,10 @@
 /* print.c
- * Routines for printing packet analysis trees.
  *
- * $Id: print.c 42053 2012-04-13 20:22:31Z darkjames $
+ * Routines for converting pcap files to DataSeries files
+ *
+ * Copyright (C) 2012 University of Connecticut. All rights reserved.
+ *
+ * Heavily borrowed from Wireshark/print.c (Id: 42053 2012-04-13 20:22:31Z darkjames $
  *
  * Gilbert Ramirez <gram@alumni.rice.edu>
  *
@@ -38,7 +41,7 @@ extern "C" {
 #include <epan/epan_dissect.h>
 #include <epan/tvbuff.h>
 #include <epan/packet.h>
-#include <epan/emem.h>
+#include <epan/conversation.h>
 #include <epan/expert.h>
 
 #include "packet-range.h"
@@ -60,27 +63,14 @@ using namespace std;
 
 typedef struct {
 	int			level;
-	print_stream_t		*stream;
-	gboolean		success;
-	GSList		 	*src_list;
-	print_dissections_e	print_dissections;
-	gboolean		print_hex_for_data;
-	packet_char_enc		encoding;
 	epan_dissect_t		*edt;
-} print_data;
-
-typedef struct {
-	int			level;
-	GSList		 	*src_list;
-	epan_dissect_t		*edt;
-	int			tcp_num_pdus;
+	int			tcp_num_fragments;
 } write_ds_data;
 
 GHashTable *output_only_tables = NULL;
 GHashTable		*frame_times;
 
 static void proto_tree_write_node_ds(proto_node *node, gpointer data);
-static void print_escaped_xml(FILE *fh, const char *unescaped_string);
 
 static gboolean frame_equal(gconstpointer a, gconstpointer b)
 {
@@ -126,18 +116,58 @@ void proto_tree_write_ds(epan_dissect_t *edt)
 {
 	write_ds_data data;
 
+	/* there is no easy way to find out if this packet is a
+	   segment of a yet to be reassembled TCP PDU.  For now, we'll
+	   find the TCP proto node, and if it has a tcp.data node,
+	   then we'll assume that it is a TCP segment in a
+	   multisegment PDU.  If it is, we'll ignore it as long its
+	   not the last segment in the PDU
+	*/
+
+	proto_node *tcp = (proto_node *)edt->pi.tcp_tree;
+	if (tcp) {
+		proto_node *node;
+		gboolean found_tcp_data = false;
+		for (node = tcp->first_child; node; node = node->next) {
+			header_field_info *hfinfo = node->finfo->hfinfo;
+			if (strcmp(hfinfo->abbrev, "tcp.data") == 0) {
+				/* We need to set the first_frame_time */
+				nstime_t *tp;
+				tp = (nstime_t *)g_malloc(sizeof(*tp));
+				tp->secs = edt->pi.fd->abs_ts.secs;
+				tp->nsecs = edt->pi.fd->abs_ts.nsecs;
+
+				/* save the frame time so that we can
+				   use it later when the frame gets
+				   reassembled into a TCP PDU */
+				g_hash_table_insert(frame_times,
+						    GUINT_TO_POINTER(edt->pi.fd->num),
+						    tp);
+				/* there may be multiple tcp.data fragments
+				   in this packet, so don't return yet */
+				found_tcp_data = true;
+			}
+		}
+
+		/* if we found tcp.data and there is no dependent_frames list,
+		   then this frame is not the last segment in the PDU, and has
+		   not been reassembled.  So, just ignore the packet.
+		*/
+		if (found_tcp_data == true && edt->pi.dependent_frames == NULL) {
+			return;
+		}
+	}
+	
 	/* Create the output */
 	data.level = 0;
-	data.src_list = edt->pi.data_src;
 	data.edt = edt;
-	data.tcp_num_pdus = 0;
+	data.tcp_num_fragments = 0;
 
 	outmodule->newRecord();
 
-	proto_tree_children_foreach(edt->tree, proto_tree_write_node_ds,
-	    &data);
+	proto_tree_children_foreach(edt->tree, proto_tree_write_node_ds, &data);
 
-	if (data.tcp_num_pdus == 0) {
+	if (data.tcp_num_fragments == 0) {
 		/* there are no frames waiting for reassembly,
 		   so we can delete the frame times that we are
 		   holding onto just in case its part of a packet that
@@ -158,7 +188,7 @@ static const struct {
 	 {"nbss", 4}
 };
 
-void smb_parse(field_info *fi, const string value);
+void smb_parse(field_info *fi);
 
 /* Write out a tree's data, and any child nodes, as DataSeries */
 static void
@@ -166,9 +196,6 @@ proto_tree_write_node_ds(proto_node *node, gpointer data)
 {
 	field_info	*fi = PNODE_FINFO(node);
 	write_ds_data	*pdata = (write_ds_data*) data;
-	const gchar	*label_ptr;
-	char		*dfilter_string;
-	size_t		chop_len;
 	int		i;
 	gboolean wrap_in_fake_protocol;
 	const gchar	*abbrev = fi->hfinfo->abbrev;
@@ -183,44 +210,46 @@ proto_tree_write_node_ds(proto_node *node, gpointer data)
 		GSList *dep_frames = pdata->edt->pi.dependent_frames;
 		nstime_t *tp;
 
-		/* the first frame is at the end of the dependent_frames list */
+		/* this frame is the last segment of a larger TCP PDU */
+		/* find the first frame at end of the dependent_frames list */
+		/* and set the first_frame_time */
 		flist = g_slist_last(dep_frames);
 		tp = (nstime_t *)g_hash_table_lookup(frame_times, flist->data);
 		first_frame_time.set(NSTIME_TO_USECS(tp));
+
+		/* remove the frame times for all the frams in this segment */
 		for (flist = g_slist_nth(dep_frames, 0); flist;
 		     flist = g_slist_next(flist)) {
 			g_hash_table_remove(frame_times, flist->data);
 		}
-		pdata->tcp_num_pdus--;
+		pdata->tcp_num_fragments--;
 		return;
 	}
 
 	if (strncmp(abbrev, "frame.", 6) == 0) {
 		if (strcmp(abbrev, "frame.time_epoch") == 0) {
-			/* save the frame times so that we can use it later
-			   when the frame gets reassembled */
 			nstime_t *tp = (nstime_t *)g_malloc(sizeof(*tp));
 			tp->secs = pdata->edt->pi.fd->abs_ts.secs;
 			tp->nsecs = pdata->edt->pi.fd->abs_ts.nsecs;
 
 			first_frame_time.set(NSTIME_TO_USECS(tp));
 			last_frame_time.set(NSTIME_TO_USECS(tp));
-
-			g_hash_table_insert(frame_times,
-				    GUINT_TO_POINTER(pdata->edt->pi.fd->num),
-				    tp);
 		}
 		return;
 	} else if (strncmp(abbrev, "ip.", 3) == 0) {
 		if (strcmp(abbrev, "ip.src") == 0) {
-			source_ip.set(1234);
-		} else if (strcmp(abbrev, "ip.dst") != 0) {
-			dest_ip.set(1234);
+			source_ip.set(fi->value.value.sinteger);
+		} else if (strcmp(abbrev, "ip.dst") == 0) {
+			dest_ip.set(fi->value.value.sinteger);
 		}
 		return;
 	} else if (strncmp(abbrev, "tcp.", 4) == 0) {
 		if (strcmp(abbrev, "tcp.data") == 0) {
-			pdata->tcp_num_pdus++;
+			pdata->tcp_num_fragments++;
+		} else if (strcmp(abbrev, "tcp.srcport") == 0) {
+			source_port.set(fi->value.value.sinteger);
+		} else if (strcmp(abbrev, "tcp.dstport") == 0) {
+			dest_port.set(fi->value.value.sinteger);
 		}
 		return;
 	} else {
@@ -243,44 +272,26 @@ proto_tree_write_node_ds(proto_node *node, gpointer data)
 			return;
 	}
 
-#if 0
-	/* Text label. It's printed as a field with no name. */
+	/* Text label. */
 	if (fi->hfinfo->id == hf_text_only) {
-		/* Get the text */
-		if (fi->rep) {
-			label_ptr = fi->rep->representation;
-		}
-		else {
-			label_ptr = "";
-		}
-
-		/* Show empty name since it is a required field */
-		fputs("<field name=\"", pdata->fh);
-		fputs("\" show=\"", pdata->fh);
-		print_escaped_xml(pdata->fh, label_ptr);
-
-		fprintf(pdata->fh, "\" size=\"%d", fi->length);
-
-		if (node->first_child != NULL) {
-			fputs("\">\n", pdata->fh);
-		}
-		else {
-			fputs("\"/>\n", pdata->fh);
-		}
+		// we can usually ignore these nodes but sometimes, it
+		// would be useful to grab information from these
+		// nodes rather than recurse further into the
+		// sub-nodes.  For example, the top-level smb.flags is
+		// a hf_text_only node.  If we print out the flags
+		// here, we don't have to have separate DS columns for
+		// each flag.XXX type.  Unfortunately, there doesn't
+		// seem to be a way to find out the name of the text
+		// node (e.g. "smb.flags") and thus avoid going down
+		// the tree.
 	}
 
-	/* Uninterpreted data, i.e., the "Data" protocol, is
-	 * printed as a field instead of a protocol. */
+	/* Uninterpreted data, i.e., the "Data" protocol */
 	else if (fi->hfinfo->id == proto_data) {
-		// XXX
-		/* Write out field with data */
-		//		fputs("<field name=\"data\" value=\"", pdata->fh);
-		//		write_ds_field_hex_value(pdata, fi);
-		//		fputs("\">\n", pdata->fh);
+		// we can usually ignore these data nodes
 	}
 	/* Normal protocols and fields */
 	else
-#endif
 	  if (fi->hfinfo->type != FT_PROTOCOL || fi->hfinfo->id == proto_expert) {
 		/* show, value, and unmaskedvalue attributes */
 		switch (fi->hfinfo->type)
@@ -290,41 +301,7 @@ proto_tree_write_node_ds(proto_node *node, gpointer data)
 		case FT_NONE:
 			break;
 		default:
-			/* XXX - this is a hack until we can just call
-			 * fvalue_to_string_repr() for *all* FT_* types. */
-			dfilter_string = proto_construct_match_selected_string(fi,
-			    pdata->edt);
-			if (dfilter_string != NULL) {
-				chop_len = strlen(fi->hfinfo->abbrev) + 4; /* for " == " */
-
-				/* XXX - Remove double-quotes. Again, once we
-				 * can call fvalue_to_string_repr(), we can
-				 * ask it not to produce the version for
-				 * display-filters, and thus, no
-				 * double-quotes. */
-				if (dfilter_string[strlen(dfilter_string)-1] == '"') {
-					dfilter_string[strlen(dfilter_string)-1] = '\0';
-					chop_len++;
-				}
-				smb_parse(fi, &dfilter_string[chop_len]);
-			}
-
-			/*
-			 * XXX - should we omit "value" for any fields?
-			 * What should we do for fields whose length is 0?
-			 * They might come from a pseudo-header or from
-			 * the capture header (e.g., time stamps), or
-			 * they might be generated fields.
-			 */
-			if (fi->length > 0) {
-
-				if (fi->hfinfo->bitmask!=0) {
-				  //					fprintf(pdata->fh, "%X", fvalue_get_uinteger(&fi->value));
-				}
-				else {
-				  //	write_pdml_field_hex_value(pdata, fi);
-				}
-			}
+			smb_parse(fi);
 		}
 	}
 
@@ -356,40 +333,3 @@ write_ds_finale()
 	outds->close();
 	delete outds;
 }
-
-/* Print a string, escaping out certain characters that need to
- * escaped out for XML. */
-static void
-print_escaped_xml(FILE *fh, const char *unescaped_string)
-{
-	const char *p;
-	char temp_str[8];
-
-	for (p = unescaped_string; *p != '\0'; p++) {
-		switch (*p) {
-			case '&':
-				fputs("&amp;", fh);
-				break;
-			case '<':
-				fputs("&lt;", fh);
-				break;
-			case '>':
-				fputs("&gt;", fh);
-				break;
-			case '"':
-				fputs("&quot;", fh);
-				break;
-			case '\'':
-				fputs("&apos;", fh);
-				break;
-			default:
-				if (g_ascii_isprint(*p))
-					fputc(*p, fh);
-				else {
-					g_snprintf(temp_str, sizeof(temp_str), "\\x%x", (guint8)*p);
-					fputs(temp_str, fh);
-				}
-		}
-	}
-}
-

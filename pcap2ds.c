@@ -1,4 +1,4 @@
-/* pcap2ds.cpp
+/* pcap2ds.c
  *
  * Converts pcap files to DataSeries files
  *
@@ -1171,15 +1171,6 @@ main(int argc, char *argv[])
     }
   }
 #endif
-
-  if (output_only != NULL) {
-    char *ps;
-
-    output_only_tables = g_hash_table_new (g_str_hash, g_str_equal);
-    for (ps = strtok (output_only, ","); ps; ps = strtok (NULL, ",")) {
-      g_hash_table_insert(output_only_tables, (gpointer)ps, (gpointer)ps);
-    }
-  }
 
 #ifdef HAVE_LIBPCAP
   if (list_link_layer_types) {
