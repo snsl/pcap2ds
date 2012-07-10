@@ -236,16 +236,18 @@ Extent::Ptr DStoXMLModule::getSharedExtent() {
 	    // vector while we iterate through the fields vector
 	    vector<string>::iterator i2 = state.field_names.begin();
 	    for(unsigned int i=0;i<state.fields.size();i++,i2++) {
-		if (xml_dest == NULL) {
-		    *stream_xml_dest << "  <field name=\"" << *i2 <<
+		if (!state.fields[i]->isNull()) {
+		    if (xml_dest == NULL) {
+			*stream_xml_dest << "  <field name=\"" << *i2 <<
 						  "\" value=\"";
-		    state.fields[i]->write(*stream_xml_dest);
-		    *stream_xml_dest << "\">\n";
-		} else {
-		    fprintf(xml_dest, "  <field name=\"%s\" value=\"",
-			    i2->c_str());
-		    state.fields[i]->write(xml_dest);
-		    fputs("\">\n", xml_dest);
+			state.fields[i]->write(*stream_xml_dest);
+			*stream_xml_dest << "\">\n";
+		    } else {
+			fprintf(xml_dest, "  <field name=\"%s\" value=\"",
+				i2->c_str());
+			state.fields[i]->write(xml_dest);
+			fputs("\">\n", xml_dest);
+		    }
 		}
 	    }
 	    if (xml_dest == NULL) {

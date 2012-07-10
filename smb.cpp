@@ -43,10 +43,10 @@ const string smb_xml(
   "  <field type=\"int32\" name=\"dest_port\" />\n"
   "  <field type=\"byte\" name=\"cmd\" />\n"
   "  <field type=\"int32\" name=\"nt_status\" />\n"
-  "  <field type=\"int32\" name=\"fid\" />\n"
-  "  <field type=\"int32\" name=\"fid.opened_in\" />\n"
-  "  <field type=\"int32\" name=\"fid.closed_in\" />\n"
-  "  <field type=\"int32\" name=\"fid.mapped_in\" />\n"
+  "  <field type=\"int32\" name=\"fid\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"fid.opened_in\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"fid.closed_in\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"fid.mapped_in\" opt_nullable=\"yes\" />\n"
   "  <field type=\"bool\" name=\"flags.response\" />\n"
   "  <field type=\"bool\" name=\"flags.notify\" />\n"
   "  <field type=\"bool\" name=\"flags.oplock\" />\n"
@@ -82,7 +82,7 @@ const string smb_xml(
   "  <field type=\"int32\" name=\"create_flags\" />\n"
   "  <field type=\"variable32\" name=\"path\" print_format=\"%s\"/>\n"
   "  <field type=\"int32\" name=\"timeout\" />\n"
-  "  <field type=\"int64\" name=\"alloc_size64\" />\n"
+  "  <field type=\"int64\" name=\"alloc_size64\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"alloc_size\" />\n"
   "  <field type=\"bool\" name=\"file_attribute.encrypted\" opt_nullable=\"yes\" />\n"
   "  <field type=\"bool\" name=\"file_attribute.not_content_indexed\" opt_nullable=\"yes\" />\n"
@@ -309,6 +309,7 @@ const string smb_xml(
 typedef struct {
 	ExtentType::fieldType type;
 	Field *field;
+	bool nullable;
 } ExtentTypeFieldInfo;
 
 typedef tr1::unordered_map<string,ExtentTypeFieldInfo> FieldMap;
@@ -403,6 +404,7 @@ void add_proto_fields(const gchar *proto_name, int proto_name_strip_len,
 		ExtentTypeFieldInfo &etfi = map[epanFieldName];
 		etfi.field = field;
 		etfi.type = ft;
+		etfi.nullable = (flags == Field::flag_nullable);
 	}
 }
 
@@ -424,7 +426,8 @@ static bool handle_smb_exception(const gchar *extentName,
 	} else if (strcmp(extentName,"alloc_size") == 0) {
 		if (hfinfo->type == FT_UINT64) {
 			alloc_size64_field =
-				new Int64Field(series, "alloc_size64");
+				new Int64Field(series, "alloc_size64",
+					       Field::flag_nullable);
 			return true;
 		}
 	} else if (strcmp(extentName,"dc") == 0) {
@@ -494,6 +497,20 @@ void smb_finish()
 	delete alloc_size64_field;
 }
 
+void smb_packet_start(ExtentType::Ptr type)
+{
+	/* set all the nullable fields to null */
+	FieldMap::iterator i;
+	for (i=epan2dstype.begin(); i!=epan2dstype.end(); i++) {
+		ExtentTypeFieldInfo &etfi = (*i).second;
+		if (etfi.nullable) {
+			etfi.field->setNull();
+		}
+	}
+	current_offset_field->setNull();
+	alloc_size64_field->setNull();
+}
+
 void smb_parse(field_info *fi)
 {
 	const gchar* abbrev = fi->hfinfo->abbrev;
@@ -524,7 +541,7 @@ void smb_parse(field_info *fi)
 			ft = ExtentType::ft_int64;
 		}
 	}
-	
+
 	switch(ft) {
 	case ExtentType::ft_bool:
 		((BoolField *)field)->set(true);

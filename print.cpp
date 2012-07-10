@@ -111,6 +111,9 @@ Int32Field dest_port(series, "dest_port");
 
 #define NSTIME_TO_USECS(tp) (tp->secs * 1000000 + tp->nsecs/1000)
   
+void smb_packet_start(ExtentType::Ptr type);
+void smb_parse(field_info *fi);
+
 extern "C"
 void proto_tree_write_ds(epan_dissect_t *edt)
 {
@@ -165,6 +168,8 @@ void proto_tree_write_ds(epan_dissect_t *edt)
 
 	outmodule->newRecord();
 
+	smb_packet_start(outmodule->getOutputType());
+
 	proto_tree_children_foreach(edt->tree, proto_tree_write_node_ds, &data);
 
 	if (data.tcp_num_fragments == 0) {
@@ -187,8 +192,6 @@ static const struct {
 	 {"data", 4},
 	 {"nbss", 4}
 };
-
-void smb_parse(field_info *fi);
 
 /* Write out a tree's data, and any child nodes, as DataSeries */
 static void
