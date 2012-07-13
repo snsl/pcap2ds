@@ -8,6 +8,8 @@
    libxml2
    cmake
    graphviz
+   bzip2
+   libbz2-dev
 
    Build DataSeries
    

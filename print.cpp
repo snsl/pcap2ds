@@ -109,7 +109,7 @@ Int32Field source_port(series, "source_port");
 Int32Field dest_ip(series, "dest_ip");
 Int32Field dest_port(series, "dest_port");
 
-#define NSTIME_TO_USECS(tp) (tp->secs * 1000000 + tp->nsecs/1000)
+#define NSTIME_TO_USECS(tp) ((int64_t)tp->secs * 1000000 + tp->nsecs/1000)
   
 void smb_packet_start(ExtentType::Ptr type);
 void smb_parse(field_info *fi);
