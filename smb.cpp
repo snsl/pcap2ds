@@ -320,6 +320,40 @@ const string smb_xml(
   "  <field type=\"int32\" name=\"open.function.open\" opt_nullable=\"yes\" />\n"
   "  <field type=\"bool\" name=\"open.action.lock\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"open.action.open\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"volume.serial\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"volume.label.len\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"variable32\" name=\"volume.label\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"nt_qsd.owner\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"nt_qsd.group\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"nt_qsd.dacl\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"nt_qsd.sacl\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"sec_desc_len\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"file.accessmask.write_attribute\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"file.accessmask.read_attribute\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"file.accessmask.execute\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"file.accessmask.write_ea\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"file.accessmask.read_ea\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"file.accessmask.append_data\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"file.accessmask.write_data\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"file.accessmask.read_data\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"disposition.delete_on_close\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"cancel_to\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"max_referral_level\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"nt.ioctl.isfsctl\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"nt.ioctl.flags.root_handle\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"nt.notify.action\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"fs_id\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"fs_units\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"avail.units\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.ioctl.function\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.ioctl.function.device\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.ioctl.function.access\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.ioctl.function.function\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.ioctl.function.method\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"fixedwidth\" name=\"smb2.object_id\" opt_nullable=\"yes\" size=\"16\" />\n"
+  "  <field type=\"fixedwidth\" name=\"smb2.birth_volume_id\" opt_nullable=\"yes\" size=\"16\" />\n"
+  "  <field type=\"fixedwidth\" name=\"smb2.birth_object_id\" opt_nullable=\"yes\" size=\"16\" />\n"
+  "  <field type=\"fixedwidth\" name=\"smb2.domain_id\" opt_nullable=\"yes\" size=\"16\" />\n"
   "</ExtentType>\n"
   );
 
@@ -494,6 +528,7 @@ smb_init(ExtentTypeLibrary& library, ExtentSeries& series)
 
 	add_proto_fields("smb", 4, epan2dstype, series, type, handle_smb_exception);
 	add_proto_fields("pipe", 0, epan2dstype, series, type, NULL);
+	add_proto_fields("smb2", 0, epan2dstype, series, type, NULL);
 
 	ignored_fields.insert("smb.reserved");
 	ignored_fields.insert("smb.padding");
