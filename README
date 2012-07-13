@@ -9,6 +9,7 @@
    cmake
    graphviz
    bzip2
+   bzip2-devel
    libbz2-dev
 
    Build DataSeries
