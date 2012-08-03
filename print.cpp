@@ -59,7 +59,20 @@ extern "C" {
 
 #include <DataSeries/DataSeriesModule.hpp>
 
+#include <protocol.hpp>
+#include <smb.hpp>
+#include <nfs.hpp>
+#include <iscsi.hpp>
+
 using namespace std;
+
+// Currently this packet_type variable is being set here, but eventually the idea would be to move this
+//   to a user provided variable
+extern "C" gchar * dissect_type;
+string packet_type;
+// string packet_type = (string) dissect_type;
+// Creation of smb, nfs & iscsi instances | SEE IF THERE IS A BETTER WAY
+smb smb; nfs nfs; iscsi iscsi;
 
 typedef struct {
 	int			level;
@@ -82,20 +95,31 @@ static gboolean frame_equal(gconstpointer a, gconstpointer b)
 ExtentSeries series;
 OutputModule *outmodule;
 DataSeriesSink *outds;
-extern string smb_xml;
 
-const ExtentType::Ptr smb_init(ExtentTypeLibrary& library, ExtentSeries& series);
-void smb_finish();
+//const ExtentType::Ptr dissect_init(ExtentTypeLibrary& library, ExtentSeries& series, string packet_type);
+//void dissect_finish(string packet_type);
 
 extern "C"
 void
-write_ds_preamble(gchar *file_name)
+write_ds_preamble(gchar *file_name)	// ~!~ NEED(?) CHANGE HERE!! ~!~
 {
 	outds= new DataSeriesSink(file_name);
 	ExtentTypeLibrary library;
 
-	const ExtentType::Ptr type = smb_init(library, series);
-	outmodule = new OutputModule(*outds, series, type, 128*1024);
+	//Note Bene: Very VERY strange that this current setup seems to work with make...
+	ExtentType::Ptr type; // Problem here causes crash, figure out why...
+	packet_type = (string) dissect_type;
+
+	// Check as to what type of dissection is going to be done
+	if(packet_type == "smb")
+		type = smb.init(library, series);	// ~!~ CHANGE HERE!! ~!~
+	else if(packet_type == "nfs")
+		type = nfs.init(library, series);
+	else if(packet_type == "iscsi")
+		type = iscsi.init(library, series);
+
+	//Note Bene: The type casting going on here might not work... Ensure crash does not happen
+	outmodule = new OutputModule(*outds, series, (const ExtentType::Ptr) type, 128*1024);
 	outds->writeExtentLibrary(library);
 
 	frame_times = g_hash_table_new_full(g_direct_hash, frame_equal,
@@ -110,9 +134,9 @@ Int32Field dest_ip(series, "dest_ip");
 Int32Field dest_port(series, "dest_port");
 
 #define NSTIME_TO_USECS(tp) ((int64_t)tp->secs * 1000000 + tp->nsecs/1000)
-  
-void smb_packet_start(ExtentType::Ptr type);
-void smb_parse(field_info *fi);
+
+//void dissect_packet_start(ExtentType::Ptr type);
+//void dissect_parse(field_info *fi, string packet_type);
 
 extern "C"
 void proto_tree_write_ds(epan_dissect_t *edt)
@@ -168,7 +192,12 @@ void proto_tree_write_ds(epan_dissect_t *edt)
 
 	outmodule->newRecord();
 
-	smb_packet_start(outmodule->getOutputType());
+	if(packet_type =="smb")	// ~!~ CHANGE HERE!! ~!~
+		smb.packet_start(outmodule->getOutputType());
+	else if(packet_type == "nfs")
+		nfs.packet_start(outmodule->getOutputType());
+	else if(packet_type == "iscsi")
+		iscsi.packet_start(outmodule->getOutputType());
 
 	proto_tree_children_foreach(edt->tree, proto_tree_write_node_ds, &data);
 
@@ -182,7 +211,8 @@ void proto_tree_write_ds(epan_dissect_t *edt)
 	}
 }
 
-static const gchar *ignored_fields[] = {"smb.file_data"};
+static const gchar *ignored_fields[] = {" "};  //smb.file_data"};	// Possibly switch to being nfs? || Does not seem that nfs.file_data exists
+// It appears that this above line is called later on in the code, need to go through later and see if this line can be removed/switch-statemented to only occur for smb
 
 static const struct {
 	const gchar *name;
@@ -195,7 +225,7 @@ static const struct {
 
 /* Write out a tree's data, and any child nodes, as DataSeries */
 static void
-proto_tree_write_node_ds(proto_node *node, gpointer data)
+proto_tree_write_node_ds(proto_node *node, gpointer data)	// ~!~ MAY NEED TO ADD PACKET_TYPE TO THIS ~!~
 {
 	field_info	*fi = PNODE_FINFO(node);
 	write_ds_data	*pdata = (write_ds_data*) data;
@@ -304,7 +334,12 @@ proto_tree_write_node_ds(proto_node *node, gpointer data)
 		case FT_NONE:
 			break;
 		default:
-			smb_parse(fi);
+			if(packet_type == "smb")	// ~!~ CHANGE HERE!! ~!~
+				smb.parse(fi);
+			else if(packet_type == "nfs")
+				nfs.parse(fi);
+			else if(packet_type == "iscsi")
+				iscsi.parse(fi);
 		}
 	}
 
@@ -327,7 +362,12 @@ extern "C"
 void
 write_ds_finale()
 {
-	smb_finish();
+	if(packet_type == "smb")	// ~!~ CHANGE HERE ~!~
+		smb.finish();
+	else if(packet_type == "nfs")
+		nfs.finish();
+	else if(packet_type == "iscsi")
+		iscsi.finish();
 
 	outmodule->flushExtent();
 	outmodule->close();

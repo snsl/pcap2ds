@@ -99,6 +99,9 @@
 #include <epan/funnel.h>
 #include "capture_opts.h"
 
+// Setting packet_type here to see if extern call works
+gchar * dissect_type = ""; // = "iscsi";
+
 /*
  * This is the template for the decode as option; it is shared between the
  * various functions that output the usage for this parameter.
@@ -272,6 +275,7 @@ print_usage(gboolean print_ver)
   fprintf(output, "  -v                       display version info and exit\n");
   fprintf(output, "  -o <name>:<value> ...    override preference setting\n");
   fprintf(output, "  -K <keytab>              keytab file to use for kerberos decryption\n");
+  fprintf(output, "  -T <packet type>		  provide the type of packet dissection to be done\n");
 }
 
 /*
@@ -1098,6 +1102,10 @@ main(int argc, char *argv[])
         return 1;
       }
       break;
+    case 'T':
+    	fprintf(stderr, "The value of optarg is %s\n", g_strdup(optarg));
+    	dissect_type = g_strdup(optarg);	//"iscsi";  //optarg;
+    	break;
     default:
     case '?':        /* Bad flag - print usage message */
       switch(optopt) {
@@ -1486,6 +1494,7 @@ main(int argc, char *argv[])
   }
 
   g_free(cf_name);
+  //g_free(dissect_type);// ~!~ CHANGE HERE!! ~!~
 
   if (cfile.frames != NULL) {
     free_frame_data_sequence(cfile.frames);

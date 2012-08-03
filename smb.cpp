@@ -1,4 +1,4 @@
-/* print.c
+/* smb.cpp
  *
  * Routines for converting SMB pcap files to DataSeries files
  *
@@ -29,10 +29,15 @@ extern "C" {
 #include <epan/proto.h>
 }
 
+#include<protocol.hpp>
+#include<smb.hpp>
 
 using namespace std;
 
-const string smb_xml(
+Int64Field * smb::current_offset_field;
+Int64Field * smb::alloc_size64_field;
+
+const string smb::smb_xml(
   "<ExtentType namespace=\"snsl.engr.uconn.edu\" name=\"Trace::SMB::SNSL\" version=\"1.0\" pack_null_compact=\"non_bool\"\n"
   " comment=\"note, if !garbage.isNull() then only the time field is valid.\" >\n"
   "  <field type=\"int64\" name=\"first_frame_time\" units=\"microseconds\" epoch=\"unix\" pack_relative=\"first_frame_time\" print_format=\"%llu\"/>\n"
@@ -302,7 +307,7 @@ const string smb_xml(
   "  <field type=\"int32\" name=\"spi_loi\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"storage_type\" opt_nullable=\"yes\" />\n"
   "  <field type=\"variable32\" name=\"trans_name\" opt_nullable=\"yes\" />\n"
-  "  <field type=\"fixedwidth\" name=\"volume_guid\" opt_nullable=\"yes\" size=\"16\"/>\n"
+  "  <field type=\"fixedwidth\" name=\"volume_guid\" opt_nullable=\"yes\" size=\"16\" />\n"
   "  <field type=\"bool\" name=\"write.mode.message_start\" opt_nullable=\"yes\" />\n"
   "  <field type=\"bool\" name=\"write.mode.raw\" opt_nullable=\"yes\" />\n"
   "  <field type=\"bool\" name=\"write.mode.return_remaining\" opt_nullable=\"yes\" />\n"
@@ -357,112 +362,7 @@ const string smb_xml(
   "</ExtentType>\n"
   );
 
-typedef struct {
-	ExtentType::fieldType type;
-	Field *field;
-	bool nullable;
-} ExtentTypeFieldInfo;
-
-typedef tr1::unordered_map<string,ExtentTypeFieldInfo> FieldMap;
-static FieldMap epan2dstype;
-static set<string> ignored_fields;
-static set<string> special_case_fields;
-
-static
-void add_proto_fields(const gchar *proto_name, int proto_name_strip_len,
-		      FieldMap &map,
-		      ExtentSeries& series,
-		      ExtentType::Ptr type,
-		      bool (*exception_handler)(const gchar*,
-						const header_field_info*,
-						ExtentSeries &series,
-						FieldMap &map))
-{
-	int proto_id = proto_get_id_by_filter_name(proto_name);
-	void *cookie;
-	header_field_info *hfinfo;
-
-	for (hfinfo = proto_get_first_protocol_field(proto_id, &cookie);
-	     hfinfo;
-	     hfinfo = proto_get_next_protocol_field(&cookie)) {
-
-		const gchar *epanFieldName = hfinfo->abbrev;
-		const gchar *extentFieldName =epanFieldName+proto_name_strip_len;
-
-		Field *field;
-
-		if (!type->hasColumn(extentFieldName)) {
-			fprintf(stderr, "Field %s does not exist in SMB XML ExtentType Description\n", extentFieldName);
-			continue;
-		}
-
-		if (exception_handler != NULL &&
-		    exception_handler(extentFieldName, hfinfo, series, map))
-			continue;
-
-		int flags = 0;
-		if (type->getNullable(extentFieldName))
-			flags = Field::flag_nullable;
-
-		ExtentType::fieldType ft = type->getFieldType(extentFieldName);
-
-		switch(ft) {
-		case ExtentType::ft_bool:
-			field = new BoolField(series, extentFieldName, flags);
-			assert(hfinfo->type == FT_BOOLEAN);
-			break;
-
-		case ExtentType::ft_byte:
-			field = new ByteField(series, extentFieldName, flags);
-			assert(hfinfo->type == FT_UINT8);
-			break;
-
-		case ExtentType::ft_int32:
-			field = new Int32Field(series, extentFieldName, flags);
-			assert(hfinfo->type == FT_UINT16 ||
-			       hfinfo->type == FT_FRAMENUM ||
-			       hfinfo->type == FT_UINT32);
-			break;
-
-		case ExtentType::ft_int64:
-			assert(hfinfo->type == FT_UINT64 ||
-			       hfinfo->type == FT_BYTES ||
-			       hfinfo->type == FT_ABSOLUTE_TIME ||
-			       hfinfo->type == FT_RELATIVE_TIME);
-			field = new Int64Field(series, extentFieldName, flags);
-			break;
-
-		case ExtentType::ft_double:
-			field = new DoubleField(series, extentFieldName, flags);
-			break;
-
-		case ExtentType::ft_variable32:
-			field = new Variable32Field(series, extentFieldName,
-						    flags);
-			break;
-
-		case ExtentType::ft_fixedwidth:
-			field = new FixedWidthField(series, extentFieldName,
-						    flags);
-			assert(hfinfo->type == FT_GUID);
-			break;
-
-		default:
-			assert(0);
-			break;
-		}
-
-		ExtentTypeFieldInfo &etfi = map[epanFieldName];
-		etfi.field = field;
-		etfi.type = ft;
-		etfi.nullable = (flags == Field::flag_nullable);
-	}
-}
-
-static Int64Field *current_offset_field;
-static Int64Field *alloc_size64_field;
-
-static bool handle_smb_exception(const gchar *extentName,
+bool smb::handle_smb_exception(const gchar *extentName,
 				 const header_field_info *hfinfo,
 				 ExtentSeries &series,
 				 FieldMap &map)
@@ -471,14 +371,14 @@ static bool handle_smb_exception(const gchar *extentName,
 		if (hfinfo->type == FT_UINT64) {
 			current_offset_field =
 				new Int64Field(series, "current_offset",
-					       Field::flag_nullable);
+						   Field::flag_nullable);
 			return true;
 		}
 	} else if (strcmp(extentName,"alloc_size") == 0) {
 		if (hfinfo->type == FT_UINT64) {
 			alloc_size64_field =
 				new Int64Field(series, "alloc_size64",
-					       Field::flag_nullable);
+						   Field::flag_nullable);
 			return true;
 		}
 	} else if (strcmp(extentName,"dc") == 0) {
@@ -521,7 +421,7 @@ static bool handle_smb_exception(const gchar *extentName,
 }
 
 const ExtentType::Ptr
-smb_init(ExtentTypeLibrary& library, ExtentSeries& series)
+smb::init(ExtentTypeLibrary& library, ExtentSeries& series)
 {
 	const ExtentType::Ptr type = library.registerTypePtr(smb_xml);
 	series.setType(type);
@@ -534,22 +434,74 @@ smb_init(ExtentTypeLibrary& library, ExtentSeries& series)
 	ignored_fields.insert("smb.padding");
 	ignored_fields.insert("smb.unknown_data");
 	ignored_fields.insert("smb.response_to");
+	ignored_fields.insert("smb.file_data");	// Possibly not want to fix ignores below...
+	// Currently unable to find definitions of the below ignored fields
+	ignored_fields.insert("nt.sec_desc.revision");
+	ignored_fields.insert("nt.sec_desc.type.self_relative");
+	ignored_fields.insert("nt.sec_desc.type.rm_control_valid");
+	ignored_fields.insert("nt.sec_desc.type.sacl_protected");
+	ignored_fields.insert("nt.sec_desc.type.dacl_protected");
+	ignored_fields.insert("nt.sec_desc.type.sacl_auto_inherited");
+	ignored_fields.insert("nt.sec_desc.type.dacl_auto_inherited");
+	ignored_fields.insert("nt.sec_desc.type.sacl_auto_inherit_req");
+	ignored_fields.insert("nt.sec_desc.type.dacl_auto_inherit_req");
+	ignored_fields.insert("nt.sec_desc.type.server_security");
+	ignored_fields.insert("nt.sec_desc.type.dacl_trusted");
+	ignored_fields.insert("nt.sec_desc.type.sacl_defaulted");
+	ignored_fields.insert("nt.sec_desc.type.sacl_present");
+	ignored_fields.insert("nt.sec_desc.type.dacl_defaulted");
+	ignored_fields.insert("nt.sec_desc.type.dacl_present");
+	ignored_fields.insert("nt.sec_desc.type.group_defaulted");
+	ignored_fields.insert("nt.sec_desc.type.owner_defaulted");
+	ignored_fields.insert("nt.acl.revision");
+	ignored_fields.insert("nt.acl.size");
+	ignored_fields.insert("nt.acl.num_aces");
+	ignored_fields.insert("nt.ace.type");
+	ignored_fields.insert("nt.ace.flags.failed_access");
+	ignored_fields.insert("nt.ace.flags.successful_access");
+	ignored_fields.insert("nt.ace.flags.inherited_ace");
+	ignored_fields.insert("nt.ace.flags.inherit_only");
+	ignored_fields.insert("nt.ace.flags.non_propagate_inherit");
+	ignored_fields.insert("nt.ace.flags.container_inherit");
+	ignored_fields.insert("nt.ace.flags.object_inherit");
+	ignored_fields.insert("nt.ace.size");
+	ignored_fields.insert("nt.access_mask");
+	ignored_fields.insert("nt.access_mask.generic_read");
+	ignored_fields.insert("nt.access_mask.generic_write");
+	ignored_fields.insert("nt.access_mask.generic_execute");
+	ignored_fields.insert("nt.access_mask.generic_all");
+	ignored_fields.insert("nt.access_mask.maximum_allowed");
+	ignored_fields.insert("nt.access_mask.access_sacl");
+	ignored_fields.insert("nt.access_mask.synchronise");
+	ignored_fields.insert("nt.access_mask.write_owner");
+	ignored_fields.insert("nt.access_mask.write_dac");
+	ignored_fields.insert("nt.access_mask.read_control");
+	ignored_fields.insert("nt.access_mask.delete");
+	ignored_fields.insert("nt.sid");
+	ignored_fields.insert("nt.sid.revision");
+	ignored_fields.insert("nt.sid.num_auth");
+	ignored_fields.insert("nt.sid.auth");
+	ignored_fields.insert("nt.sid.subauth");
+	ignored_fields.insert("nt.sid.rid");
+	ignored_fields.insert("nt.sid.wkwn");
+	ignored_fields.insert("nt.sid.domain");
 
 	return type;
 }
 
-void smb_finish()
+void smb::finish()
 {
 	FieldMap::iterator i;
 	for (i=epan2dstype.begin(); i!=epan2dstype.end(); i++) {
 		ExtentTypeFieldInfo &etfi = (*i).second;
 		delete etfi.field;
 	}
+
 	delete current_offset_field;
 	delete alloc_size64_field;
 }
 
-void smb_packet_start(ExtentType::Ptr type)
+void smb::packet_start(ExtentType::Ptr type)
 {
 	/* set all the nullable fields to null */
 	FieldMap::iterator i;
@@ -563,7 +515,7 @@ void smb_packet_start(ExtentType::Ptr type)
 	alloc_size64_field->setNull();
 }
 
-void smb_parse(field_info *fi)
+void smb::parse(field_info *fi)
 {
 	const gchar* abbrev = fi->hfinfo->abbrev;
 	FieldMap::iterator it =	epan2dstype.find(abbrev);

@@ -1,6 +1,6 @@
-/* print.c
+/* nfs.cpp
  *
- * Routines for converting SMB pcap files to DataSeries files
+ * Routines for converting NFS pcap files to DataSeries files
  *
  * Copyright (C) 2012 University of Connecticut. All rights reserved.
  *
@@ -29,9 +29,15 @@ extern "C" {
 #include <epan/proto.h>
 }
 
+#include <protocol.hpp>
+#include <nfs.hpp>
+
 using namespace std;
 
-const string nfs_xml(
+Int32Field * nfs::recommended_attr_field;
+Int32Field * nfs::reply_status_field;
+
+const string nfs::nfs_xml(
   "<ExtentType namespace=\"snsl.engr.uconn.edu\" name=\"Trace::NFS::SNSL\" version=\"1.0\" pack_null_compact=\"non_bool\"\n"
   " comment=\"note, if !garbage.isNull() then only the time field is valid.\" >\n"
   "  <field type=\"int64\" name=\"first_frame_time\" units=\"microseconds\" epoch=\"unix\" pack_relative=\"first_frame_time\" print_format=\"%llu\"/>\n"
@@ -138,31 +144,7 @@ const string nfs_xml(
   "</ExtentType>\n"
   );
 
-typedef struct {
-	ExtentType::fieldType type;
-	Field *field;
-	bool nullable;
-} ExtentTypeFieldInfo;
-
-typedef tr1::unordered_map<string,ExtentTypeFieldInfo> FieldMap;
-extern FieldMap epan2dstype;
-extern set<string> ignored_fields;
-extern set<string> special_case_fields;
-
-extern FieldMap &map;
-extern void add_proto_fields(const gchar *proto_name, int proto_name_strip_len,
-	      FieldMap &map,
-	      ExtentSeries& series,
-	      ExtentType::Ptr type,
-	      bool (*exception_handler)(const gchar*,
-					const header_field_info*,
-					ExtentSeries &series,
-					FieldMap &map));
-
-static Int32Field *recommended_attr_field;
-static Int32Field *reply_status_field;
-
-static bool handle_nfs_exception(const gchar *extentName,
+bool nfs::handle_nfs_exception(const gchar *extentName,
 				 const header_field_info *hfinfo,
 				 ExtentSeries &series,
 				 FieldMap &map)
@@ -187,7 +169,7 @@ static bool handle_nfs_exception(const gchar *extentName,
 }
 
 const ExtentType::Ptr
-nfs_init(ExtentTypeLibrary& library, ExtentSeries& series)
+nfs::init(ExtentTypeLibrary& library, ExtentSeries& series)
 {
 	const ExtentType::Ptr type = library.registerTypePtr(nfs_xml);
 	series.setType(type);
@@ -231,8 +213,98 @@ nfs_init(ExtentTypeLibrary& library, ExtentSeries& series)
 	return type;
 }
 
-void nfs_finish()
+void nfs::finish()
 {
+	FieldMap::iterator i;
+	for (i=epan2dstype.begin(); i!=epan2dstype.end(); i++) {
+		ExtentTypeFieldInfo &etfi = (*i).second;
+		delete etfi.field;
+	}
+
 	delete recommended_attr_field;
 	delete reply_status_field;
+}
+
+void nfs::packet_start(ExtentType::Ptr type)
+{
+	/* set all the nullable fields to null */
+	FieldMap::iterator i;
+	for (i=epan2dstype.begin(); i!=epan2dstype.end(); i++) {
+		ExtentTypeFieldInfo &etfi = (*i).second;
+		if (etfi.nullable) {
+			etfi.field->setNull();
+		}
+	}
+
+	recommended_attr_field->setNull();
+	reply_status_field->setNull();
+}
+
+void nfs::parse(field_info *fi)
+{
+	const gchar* abbrev = fi->hfinfo->abbrev;
+	FieldMap::iterator it =	epan2dstype.find(abbrev);
+
+	if (it == epan2dstype.end()) {
+		if (ignored_fields.find(abbrev) == ignored_fields.end()) {
+			fprintf(stderr,"unknown field %s\n", abbrev);
+		}
+		return;
+	}
+
+	assert (it != epan2dstype.end());
+
+	ExtentTypeFieldInfo &etfi = (*it).second;
+	ExtentType::fieldType ft = etfi.type;
+	Field *field = etfi.field;
+
+	// handle offset special case || May or may not work, NEED TO TEST!!
+/*	if (strcmp(abbrev,"nfs.recc_attr") == 0) {
+		if (fi->hfinfo->type == FT_UINT32) {
+			field = recommended_attr_field;
+			ft = ExtentType::ft_int32;
+		}
+	} else if (strcmp(abbrev,"nfs.Status") == 0) {
+		if (fi->hfinfo->type == FT_UINT32) {
+			field = reply_status_field;
+			ft = ExtentType::ft_int32;
+		}
+	} */
+
+	switch(ft) {
+	case ExtentType::ft_bool:
+		((BoolField *)field)->set(true);
+		break;
+
+	case ExtentType::ft_byte:
+		((ByteField *)field)->set(fi->value.value.sinteger);
+		break;
+
+	case ExtentType::ft_int32:
+		((Int32Field *)field)->set(fi->value.value.sinteger);
+		break;
+
+	case ExtentType::ft_int64:
+		((Int64Field *)field)->set(fi->value.value.integer64);
+		break;
+
+	case ExtentType::ft_double:
+		((DoubleField *)field)->set(fi->value.value.floating);
+		break;
+
+	case ExtentType::ft_variable32:
+		((Variable32Field *)field)->set(fi->value.value.ustring,
+						fi->length);
+		break;
+
+	case ExtentType::ft_fixedwidth:
+		{
+			FixedWidthField *fwfield = (FixedWidthField *)field;
+			fwfield->set(&fi->value.value.guid, fwfield->size());
+			break;
+		}
+
+	default:
+		assert(0);
+	}
 }

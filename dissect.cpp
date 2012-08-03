@@ -29,8 +29,19 @@ extern "C" {
 #include <epan/proto.h>
 }
 
-
 using namespace std;
+
+const ExtentType::Ptr smb_init(ExtentTypeLibrary& library, ExtentSeries& series);
+const ExtentType::Ptr nfs_init(ExtentTypeLibrary& library, ExtentSeries& series);
+const ExtentType::Ptr iscsi_init(ExtentTypeLibrary& library, ExtentSeries& series);
+
+extern string packet_type;
+
+void smb_parse(const gchar* abbrev, field_info *fi, Field *field, ExtentType::fieldType *ft);
+
+void smb_finish();
+void nfs_finish();
+void iscsi_finish();
 
 typedef struct {
 	ExtentType::fieldType type;
@@ -38,12 +49,14 @@ typedef struct {
 	bool nullable;
 } ExtentTypeFieldInfo;
 
-typedef tr1::unordered_map<string,ExtentTypeFieldInfo> FieldMap;
-static FieldMap epan2dstype;
-static set<string> ignored_fields;
-static set<string> special_case_fields;
+typedef tr1::unordered_map<string,ExtentTypeFieldInfo> FieldMap;	// Can put in .h file somewhere
+//static
+FieldMap epan2dstype;
+set<string> ignored_fields;	// Try to see if can work this from each individual cpp file
+// May need to extern || Do as Classes/Objects
+set<string> special_case_fields;
 
-static
+//static
 void add_proto_fields(const gchar *proto_name, int proto_name_strip_len,
 		      FieldMap &map,
 		      ExtentSeries& series,
@@ -67,7 +80,7 @@ void add_proto_fields(const gchar *proto_name, int proto_name_strip_len,
 		Field *field;
 
 		if (!type->hasColumn(extentFieldName)) {
-			fprintf(stderr, "Field %s does not exist in NFS XML ExtentType Description\n", extentFieldName);
+			fprintf(stderr, "Field %s does not exist in %s XML ExtentType Description\n", extentFieldName, proto_name);
 			continue;
 		}
 
@@ -133,81 +146,27 @@ void add_proto_fields(const gchar *proto_name, int proto_name_strip_len,
 	}
 }
 
-static Int32Field *recommended_attr_field;
-static Int32Field *reply_status_field;
-
-static bool handle_nfs_exception(const gchar *extentName,
-				 const header_field_info *hfinfo,
-				 ExtentSeries &series,
-				 FieldMap &map)
-{
-	if (strcmp(extentName,"attr") == 0) {
-		if (strcmp(hfinfo->name, "recc_attr")) {
-			recommended_attr_field =
-				new Int32Field(series, "recc_attr",
-					       Field::flag_nullable);
-			return true;
-		}
-	} else if (strcmp(extentName,"status") == 0) {
-		if (strcmp(hfinfo->name, "Status")) {
-			reply_status_field =
-				new Int32Field(series, "reply_status",
-					       Field::flag_nullable);
-			return true;
-		}
-	}
-
-	return false;
-}
-
 const ExtentType::Ptr
-nfs_init(ExtentTypeLibrary& library, ExtentSeries& series)
+dissect_init(ExtentTypeLibrary& library, ExtentSeries& series, string packet_type)
 {
-	const ExtentType::Ptr type = library.registerTypePtr(nfs_xml);
-	series.setType(type);
-
-	add_proto_fields("nfs", 4, epan2dstype, series, type, handle_nfs_exception);	// Note: getting rid of shortening of field so that one can see what is an nfs.* property
-	add_proto_fields("rpc", 0, epan2dstype, series, type, NULL);
-//	add_proto_fields("smb2", 0, epan2dstype, series, type, NULL);
-
-	ignored_fields.insert("rpc.auth.gid");
-	ignored_fields.insert("rpc.auth.uid");
-	ignored_fields.insert("rpc.auth.length");
-	ignored_fields.insert("rpc.auth.stamp");
-	ignored_fields.insert("rpc.auth.machinename");
-	ignored_fields.insert("rpc.auth.flavor");
-	ignored_fields.insert("rpc.programversion");
-	ignored_fields.insert("rpc.lastfrag");
-	ignored_fields.insert("rpc.xid");
-	ignored_fields.insert("rpc.fraglen");
-	ignored_fields.insert("rpc.msgtyp");
-	ignored_fields.insert("rpc.version");
-	ignored_fields.insert("rpc.program");
-	ignored_fields.insert("rpc.procedure");
-	ignored_fields.insert("rpc.replystat");
-	ignored_fields.insert("rpc.repframe");
-	ignored_fields.insert("rpc.time");
-	ignored_fields.insert("rpc.state_accept");
-	ignored_fields.insert("rpc.value_follows");
-	ignored_fields.insert("rpc.call.dup");
-	ignored_fields.insert("udp.port");
-	ignored_fields.insert("udp.length");
-	ignored_fields.insert("udp.checksum_coverage");
-	ignored_fields.insert("udp.checksum");
-	ignored_fields.insert("udp.checksum_good");
-	ignored_fields.insert("udp.checksum_bad");
-	ignored_fields.insert("udp.srcport");
-	ignored_fields.insert("udp.dstport");
-	ignored_fields.insert("portmap.procedure_v2");
-	ignored_fields.insert("portmap.prog");
-	ignored_fields.insert("portmap.version");
-	ignored_fields.insert("portmap.proto");
-	ignored_fields.insert("portmap.port");
-
-	return type;
+	if(strcmp(packet_type.c_str(), "smb") == 0)
+	{
+		const ExtentType::Ptr type = smb_init(library, series);
+		return type;
+	}
+	else if(strcmp(packet_type.c_str(), "nfs") == 0)
+	{
+		const ExtentType::Ptr type = nfs_init(library, series);
+		return type;
+	}
+	else if(strcmp(packet_type.c_str(), "iscsi") == 0)
+	{
+		const ExtentType::Ptr type = iscsi_init(library, series);
+		return type;
+	}
 }
 
-void nfs_finish()
+void dissect_finish(string packet_type)
 {
 	FieldMap::iterator i;
 	for (i=epan2dstype.begin(); i!=epan2dstype.end(); i++) {
@@ -215,11 +174,15 @@ void nfs_finish()
 		delete etfi.field;
 	}
 
-	delete recommended_attr_field;
-	delete reply_status_field;
+	if(strcmp(packet_type.c_str(), "smb") == 0)
+		smb_finish();
+	else if(strcmp(packet_type.c_str(), "nfs") == 0)
+		nfs_finish();
+	else if(strcmp(packet_type.c_str(), "iscsi") == 0)
+		iscsi_finish();
 }
 
-void nfs_packet_start(ExtentType::Ptr type)
+void dissect_packet_start(ExtentType::Ptr type)
 {
 	/* set all the nullable fields to null */
 	FieldMap::iterator i;
@@ -231,7 +194,7 @@ void nfs_packet_start(ExtentType::Ptr type)
 	}
 }
 
-void nfs_parse(field_info *fi)
+void dissect_parse(field_info *fi, string packet_type)
 {
 	const gchar* abbrev = fi->hfinfo->abbrev;
 	FieldMap::iterator it =	epan2dstype.find(abbrev);
@@ -248,6 +211,10 @@ void nfs_parse(field_info *fi)
 	ExtentTypeFieldInfo &etfi = (*it).second;
 	ExtentType::fieldType ft = etfi.type;
 	Field *field = etfi.field;
+
+	//Handle smb offest exception
+    if(packet_type == "smb")
+    	smb_parse(abbrev, fi, field, &ft);
 
 	switch(ft) {
 	case ExtentType::ft_bool:

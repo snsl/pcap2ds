@@ -1,12 +1,12 @@
-WIRESHARK = /Users/jchandy/src/wireshark
-DATASERIES = /Users/jchandy/build/opt-macos-10.6-i386
+WIRESHARK = /media/FileArea/WorkFiles/wireshark-1.8.0
+DATASERIES = /home/runde/build/dbg-ubuntu-12.04-i686
 LIBXML = /usr/include/libxml2
 BOOST = /sw/include
 
 CFLAGS = -DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -I. `pkg-config --cflags glib-2.0` -I$(WIRESHARK) -W -Wall -g -I$(DATASERIES)/include -I$(LIBXML) -I$(BOOST) -DHAVE_STDARG_H
 CPPFLAGS = $(CFLAGS)
 
-TSHARK_BUILD = $(WIRESHARK)/build
+TSHARK_BUILD = $(WIRESHARK)
 TSHARK_OBJS = $(TSHARK_BUILD)/tshark-disabled_protos.o \
 	$(TSHARK_BUILD)/tshark-capture_opts.o \
 	$(TSHARK_BUILD)/tshark-capture_ui_utils.o \
@@ -22,7 +22,7 @@ TSHARK_OBJS = $(TSHARK_BUILD)/tshark-disabled_protos.o \
 	$(TSHARK_BUILD)/tshark-sync_pipe_write.o \
 	$(TSHARK_BUILD)/ui/libui_a-util.o
 
-OBJS = pcap2ds.o print.o smb.o
+OBJS = pcap2ds.o print.o smb.o nfs.o iscsi.o protocol.o
 
 LIBS = -L/usr/local/lib -lpcap -lwireshark -lwiretap -lcrypto -lwsutil -lz `pkg-config --libs glib-2.0` -lLintel -lDataSeries -L$(DATASERIES)/lib
 
