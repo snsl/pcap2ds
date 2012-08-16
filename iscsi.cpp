@@ -48,7 +48,7 @@ const string iscsi::iscsi_xml(
   "  <field type=\"int32\" name=\"fid\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"fid.opened_in\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"fid.closed_in\" opt_nullable=\"yes\" />\n"
-  "  <field type=\"int32\" name=\"fid.mapped_in\" opt_nullable=\"yes\" />\n"	// Starting to add iscsi properties after this line || N.B. Go back and check that the previous lines are needed
+  "  <field type=\"int32\" name=\"fid.mapped_in\" opt_nullable=\"yes\" />\n"
   "  <field type=\"byte\" name=\"opcode\" />\n"
   "  <field type=\"byte\" name=\"totalahslength\" />\n"
   "  <field type=\"int32\" name=\"datasegmentlength\" />\n"
@@ -74,6 +74,46 @@ const string iscsi::iscsi_xml(
   "  <field type=\"int32\" name=\"desireddatalength\" opt_nullable=\"yes\" />\n"
   "  <field type=\"bool\" name=\"scsidata.F\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"request_frame\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"time\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"data_in_frame\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"data_out_frame\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"response_frame\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"expdatasn\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"scsidata.A\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"scsidata.O\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"scsidata.U\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"scsidata.S\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"scsidata.readresidualcount\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"scsiresponse.bidireadresidualcount\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"scsiresponse.residualcount\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"scsiresponse.response\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"scsiresponse.status\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"scsiresponse.o\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"scsiresponse.u\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"scsiresponse.O\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"scsiresponse.U\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"scsiresponse.senselength\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"variable32\" name=\"keyvalue\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"login.status\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"login.T\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"login.C\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"login.csg\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"login.nsg\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"logout.reason\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"logout.response\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"tsih\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"isid.t\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"isid.a\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"isid.b\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"isid.c\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"isid.d\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"versionmin\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"versionmax\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"versionactive\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"padding\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"cid\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"time2retain\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"time2wait\" opt_nullable=\"yes\" />\n"
   "</ExtentType>\n"
   );
 
@@ -109,12 +149,81 @@ iscsi::init(ExtentTypeLibrary& library, ExtentSeries& series)
 	ignored_fields.insert("scsi.sbc.dpo");
 	ignored_fields.insert("scsi.sbc.fua");
 	ignored_fields.insert("scsi.sbc.fua_nv");
+	ignored_fields.insert("scsi.sbc.blocksize");
+	ignored_fields.insert("scsi.sbc.returned_lba");
+	ignored_fields.insert("scsi.sbc.pmi");
+	ignored_fields.insert("scsi.sbc.pmi_flags");
+	ignored_fields.insert("scsi.sbc.readcapacity.lba");
+	ignored_fields.insert("scsi.sbc.rdprotect");
 	ignored_fields.insert("scsi.cdb.control");
 	ignored_fields.insert("scsi.cdb.control.vendorspecific");
 	ignored_fields.insert("scsi.cdb.control.reserved");
 	ignored_fields.insert("scsi.cdb.control.naca");
 	ignored_fields.insert("scsi.cdb.control.obs1");
 	ignored_fields.insert("scsi.cdb.control.obs2");
+	ignored_fields.insert("scsi.cdb.inq.control");
+	ignored_fields.insert("scsi.cdb.alloclen");
+	ignored_fields.insert("scsi.cdb.alloclen32");
+	ignored_fields.insert("scsi.time");
+	ignored_fields.insert("scsi.status");
+	ignored_fields.insert("scsi.response_frame");
+	ignored_fields.insert("scsi.sns.sksv");
+	ignored_fields.insert("scsi.sns.fru");
+	ignored_fields.insert("scsi.sns.ascq");
+	ignored_fields.insert("scsi.sns.asc");
+	ignored_fields.insert("scsi.sns.ascascq");
+	ignored_fields.insert("scsi.sns.addlen");
+	ignored_fields.insert("scsi.sns.info");
+	ignored_fields.insert("scsi.sns.key");
+	ignored_fields.insert("scsi.sns.errtype");
+	ignored_fields.insert("scsi.spc.opcode");
+	ignored_fields.insert("scsi.spc.select_report");
+	ignored_fields.insert("scsi.inquiry.qualifier");
+	ignored_fields.insert("scsi.inquiry.control.obs1");
+	ignored_fields.insert("scsi.inquiry.control.obs2");
+	ignored_fields.insert("scsi.inquiry.control.naca");
+	ignored_fields.insert("scsi.inquiry.control.reserved");
+	ignored_fields.insert("scsi.inquiry.control.vendorspecific");
+	ignored_fields.insert("scsi.inquiry.flags");
+	ignored_fields.insert("scsi.inquiry.evpd.pagecode");
+	ignored_fields.insert("scsi.inquiry.version_desc");
+	ignored_fields.insert("scsi.inquiry.reserved");
+	ignored_fields.insert("scsi.inquiry.vendor_specific");
+	ignored_fields.insert("scsi.inquiry.product_rev");
+	ignored_fields.insert("scsi.inquiry.product_id");
+	ignored_fields.insert("scsi.inquiry.vendor_id");
+	ignored_fields.insert("scsi.inquiry.cmdque");
+	ignored_fields.insert("scsi.inquiry.linked");
+	ignored_fields.insert("scsi.inquiry.sync");
+	ignored_fields.insert("scsi.inquiry.reladr");
+	ignored_fields.insert("scsi.inquiry.reladrflags");
+	ignored_fields.insert("scsi.inquiry.mchngr");
+	ignored_fields.insert("scsi.inquiry.multip");
+	ignored_fields.insert("scsi.inquiry.encserv");
+	ignored_fields.insert("scsi.inquiry.bque");
+	ignored_fields.insert("scsi.inquiry.bqueflags");
+	ignored_fields.insert("scsi.inquiry.protect");
+	ignored_fields.insert("scsi.inquiry.tpc");
+	ignored_fields.insert("scsi.inquiry.tpgs");
+	ignored_fields.insert("scsi.inquiry.acc");
+	ignored_fields.insert("scsi.inquiry.sccs");
+	ignored_fields.insert("scsi.inquiry.sccsflags");
+	ignored_fields.insert("scsi.inquiry.add_len");
+	ignored_fields.insert("scsi.inquiry.rdf");
+	ignored_fields.insert("scsi.inquiry.hisup");
+	ignored_fields.insert("scsi.inquiry.normaca");
+	ignored_fields.insert("scsi.inquiry.trmtsk");
+	ignored_fields.insert("scsi.inquiry.aerc");
+	ignored_fields.insert("scsi.inquiry.acaflags");
+	ignored_fields.insert("scsi.inquiry.version");
+	ignored_fields.insert("scsi.inquiry.removable");
+	ignored_fields.insert("scsi.inquiry.rmbflags");
+	ignored_fields.insert("scsi.inquiry.peripheral");
+	ignored_fields.insert("scsi.mode.sbc.pagecode");
+	ignored_fields.insert("scsi.mode.spc.pagecode");
+	ignored_fields.insert("scsi.mode.pc");
+	ignored_fields.insert("scsi.mode.flags");
+	ignored_fields.insert("scsi.reportluns.lun");
 
 	return type;
 }

@@ -99,8 +99,7 @@
 #include <epan/funnel.h>
 #include "capture_opts.h"
 
-// Setting packet_type here to see if extern call works
-gchar * dissect_type = ""; // = "iscsi";
+gchar * dissect_type = "";
 
 /*
  * This is the template for the decode as option; it is shared between the
@@ -239,10 +238,8 @@ print_usage(gboolean print_ver)
   fprintf(output, "  -a <autostop cond.> ...  duration:NUM - stop after NUM seconds\n");
   fprintf(output, "                           filesize:NUM - stop this file after NUM KB\n");
   fprintf(output, "                              files:NUM - stop after NUM files\n");
-  /*fprintf(output, "\n");*/
 #endif  /* HAVE_LIBPCAP */
 
-  /*fprintf(output, "\n");*/
   fprintf(output, "Input file:\n");
   fprintf(output, "  -r <infile>              set the filename to read from (no pipes or stdin!)\n");
 
@@ -252,7 +249,6 @@ print_usage(gboolean print_ver)
   fprintf(output, "  -d %s ...\n", decode_as_arg_template);
   fprintf(output, "                           \"Decode As\", see the man page for details\n");
   fprintf(output, "                           Example: tcp.port==8888,http\n");
-  /*fprintf(output, "\n");*/
   fprintf(output, "Output:\n");
   fprintf(output, "  -w <outfile|->           write packets to a file named \"outfile\"\n");
   fprintf(output, "                           (or to the standard output for \"-\")\n");
@@ -1103,8 +1099,7 @@ main(int argc, char *argv[])
       }
       break;
     case 'T':
-    	fprintf(stderr, "The value of optarg is %s\n", g_strdup(optarg));
-    	dissect_type = g_strdup(optarg);	//"iscsi";  //optarg;
+    	dissect_type = g_strdup(optarg);
     	break;
     default:
     case '?':        /* Bad flag - print usage message */
@@ -1494,7 +1489,6 @@ main(int argc, char *argv[])
   }
 
   g_free(cf_name);
-  //g_free(dissect_type);// ~!~ CHANGE HERE!! ~!~
 
   if (cfile.frames != NULL) {
     free_frame_data_sequence(cfile.frames);

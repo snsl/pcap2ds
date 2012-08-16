@@ -180,6 +180,7 @@ const string smb::smb_xml(
   "  <field type=\"int32\" name=\"data_offset\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"data_offset32\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"data_disp\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"variable32\" name=\"dialect.name\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"close.fid\" opt_nullable=\"yes\" />\n"
   "  <field type=\"bool\" name=\"write.mode.write_through\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"dcm\" opt_nullable=\"yes\" />\n"
@@ -350,15 +351,139 @@ const string smb::smb_xml(
   "  <field type=\"int32\" name=\"fs_id\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"fs_units\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"avail.units\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.cmd\" />\n"
   "  <field type=\"int32\" name=\"smb2.ioctl.function\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"smb2.ioctl.function.device\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"smb2.ioctl.function.access\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"smb2.ioctl.function.function\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"smb2.ioctl.function.method\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.ioctl.flags\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.ioctl.is_fsctl\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.max_ioctl_in_size\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.max_ioctl_out_size\" opt_nullable=\"yes\" />\n"
   "  <field type=\"fixedwidth\" name=\"smb2.object_id\" opt_nullable=\"yes\" size=\"16\" />\n"
   "  <field type=\"fixedwidth\" name=\"smb2.birth_volume_id\" opt_nullable=\"yes\" size=\"16\" />\n"
   "  <field type=\"fixedwidth\" name=\"smb2.birth_object_id\" opt_nullable=\"yes\" size=\"16\" />\n"
   "  <field type=\"fixedwidth\" name=\"smb2.domain_id\" opt_nullable=\"yes\" size=\"16\" />\n"
+  "  <field type=\"int64\" name=\"smb2.eof\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.allocation_size\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.close.flags\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.close.pq_attrib\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.buffer_code.dynamic\" />\n"
+  "  <field type=\"int32\" name=\"smb2.buffer_code.length\" />\n"
+  "  <field type=\"int64\" name=\"smb2.signature\" />\n"
+  "  <field type=\"variable32\" name=\"smb2.tag\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.sesid\" />\n"
+  "  <field type=\"int64\" name=\"smb2.aid\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.tid\" />\n"
+  "  <field type=\"int32\" name=\"smb2.pid\" />\n"
+  "  <field type=\"fixedwidth\" name=\"smb2.fid\" opt_nullable=\"yes\" size=\"16\" />\n"
+  "  <field type=\"int64\" name=\"smb2.qfid_fid\" opt_nullable=\"yes\" />\n"
+//  "  <field type=\"int64\" name=\"smb2.seq_num\" />\n"	// Causes crash of pcap2ds
+  "  <field type=\"int32\" name=\"smb2.chain_offset\" />\n"
+  "  <field type=\"bool\" name=\"smb2.flags.dfs\" />\n"
+  "  <field type=\"bool\" name=\"smb2.flags.signature\" />\n"
+  "  <field type=\"bool\" name=\"smb2.flags.chained\" />\n"
+  "  <field type=\"bool\" name=\"smb2.flags.async\" />\n"
+  "  <field type=\"bool\" name=\"smb2.flags.response\" />\n"
+  "  <field type=\"int32\" name=\"smb2.dialect\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.dialect_count\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.credit.charge\" />\n"
+  "  <field type=\"int32\" name=\"smb2.credits.granted\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.credits.requested\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.nt_status\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.header_len\" />\n"
+  "  <field type=\"int32\" name=\"smb2.channel\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.channel_sequence\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.channel_info_offset\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.channel_info_length\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.tcon_frame\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.time\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"variable32\" name=\"smb2.tree\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"smb2.share_type\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.mxac_status\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.write.remaining\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.write.count\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.write.flags\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.write.flags.write_through\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.write_data\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.write_length\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.error.reserved\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.error.byte_count\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.error.data\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.olb.offset\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.olb.length\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"smb2.file_info.infolevel\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"smb2.class\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.max_response_size\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.max_trans_size\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.max_read_size\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.max_write_size\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.required_size\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.remaining_bytes\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.file_offset\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.find.info_blob\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.security_blob\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.previous_sesid\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.dhnq_buffer_reserved\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"smb2.create.oplock\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"smb2.create.rep_flags\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.create.rep_flags.reparse_point\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.create.action\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.create.time\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.create.chain_offset\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.current_time\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.boot_time\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"fixedwidth\" name=\"smb2.lease.lease_key\" opt_nullable=\"yes\" size=\"16\" />\n"
+  "  <field type=\"int64\" name=\"smb2.lease.lease_duration\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.lease.lease_flags\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.lease.lease_state\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.lease.lease_state.read_caching\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.lease.lease_state.handle_caching\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.lease.lease_state.write_caching\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.lease.lease_state.break_ack_required\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.lease.lease_state.break_in_progress\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.lease.lease_state.parent_lease_key_set\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.last_access.time\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.last_write.time\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.last_change.time\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.data_offset\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.read_length\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.read_remaining\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int64\" name=\"smb2.read_data\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.share.caching\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.share_caps\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.share_caps.dfs\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.share_caps.continuous_availability\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.share_flags\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.share_flags.dfs\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.share_flags.dfs_root\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.share_flags.restrict_exclusive_opens\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.share_flags.force_shared_delete\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.share_flags.allow_namespace_caching\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.share_flags.access_based_dir_enum\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.share_flags.force_levelii_oplock\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.share_flags.enable_hash_v1\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.share_flags.enable_hash_v2\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.share_flags.encrypt_data\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.session_flags\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.ses_flags.null\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.ses_flags.guest\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"int32\" name=\"smb2.capabilities\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.capabilities.dfs\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.capabilities.leasing\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.capabilities.large_mtu\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.capabilities.multi_channel\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.capabilities.persistent_handles\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.capabilities.directory_leasing\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.capabilities.encryption\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"smb2.ses_req_flags\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.ses_req_flags.session_binding\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"byte\" name=\"smb2.sec_mode\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.sec_mode.sign_required\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"bool\" name=\"smb2.sec_mode.sign_enabled\" opt_nullable=\"yes\" />\n"
+  "  <field type=\"fixedwidth\" name=\"smb2.server_guid\" opt_nullable=\"yes\" size=\"16\" />\n"
+  "  <field type=\"fixedwidth\" name=\"smb2.client_guid\" opt_nullable=\"yes\" size=\"16\" />\n"
   "</ExtentType>\n"
   );
 
@@ -430,12 +555,16 @@ smb::init(ExtentTypeLibrary& library, ExtentSeries& series)
 	add_proto_fields("pipe", 0, epan2dstype, series, type, NULL);
 	add_proto_fields("smb2", 0, epan2dstype, series, type, NULL);
 
+	ignored_fields.insert("smb2.seq_num");
 	ignored_fields.insert("smb.reserved");
 	ignored_fields.insert("smb.padding");
 	ignored_fields.insert("smb.unknown_data");
 	ignored_fields.insert("smb.response_to");
-	ignored_fields.insert("smb.file_data");	// Possibly not want to fix ignores below...
-	// Currently unable to find definitions of the below ignored fields
+	ignored_fields.insert("smb.file_data");
+	ignored_fields.insert("smb2.unknown");
+	ignored_fields.insert("smb2.response_to");
+	ignored_fields.insert("smb2.reserved");
+
 	ignored_fields.insert("nt.sec_desc.revision");
 	ignored_fields.insert("nt.sec_desc.type.self_relative");
 	ignored_fields.insert("nt.sec_desc.type.rm_control_valid");
@@ -485,6 +614,308 @@ smb::init(ExtentTypeLibrary& library, ExtentSeries& series)
 	ignored_fields.insert("nt.sid.rid");
 	ignored_fields.insert("nt.sid.wkwn");
 	ignored_fields.insert("nt.sid.domain");
+
+	ignored_fields.insert("udp.checksum");
+	ignored_fields.insert("udp.checksum_good");
+	ignored_fields.insert("udp.checksum_bad");
+	ignored_fields.insert("udp.checksum_coverage");
+	ignored_fields.insert("udp.length");
+	ignored_fields.insert("udp.port");
+	ignored_fields.insert("udp.dstport");
+	ignored_fields.insert("udp.srcport");
+	ignored_fields.insert("http.accept");
+	ignored_fields.insert("http.user_agent");
+	ignored_fields.insert("http.request");
+	ignored_fields.insert("http.request.full_uri");
+	ignored_fields.insert("http.request.uri");
+	ignored_fields.insert("http.request.method");
+	ignored_fields.insert("http.request.version");
+	ignored_fields.insert("http.response");
+	ignored_fields.insert("http.response.phrase");
+	ignored_fields.insert("http.response.code");
+	ignored_fields.insert("http.server");
+	ignored_fields.insert("http.cache_control");
+	ignored_fields.insert("http.location");
+	ignored_fields.insert("http.host");
+	ignored_fields.insert("http.connection");
+	ignored_fields.insert("http.accept_encoding");
+	ignored_fields.insert("http.content_length");
+	ignored_fields.insert("http.content_length_header");
+	ignored_fields.insert("http.date");
+	ignored_fields.insert("http.content_type");
+	ignored_fields.insert("http.notification");
+	ignored_fields.insert("expert.group");
+	ignored_fields.insert("expert.severity");
+	ignored_fields.insert("expert.message");
+	ignored_fields.insert("ipv6.host");
+	ignored_fields.insert("ipv6.dst_host");
+	ignored_fields.insert("ipv6.addr");
+	ignored_fields.insert("ipv6.dst");
+	ignored_fields.insert("ipv6.host");
+	ignored_fields.insert("ipv6.src");
+	ignored_fields.insert("ipv6.src_host");
+	ignored_fields.insert("ipv6.hlim");
+	ignored_fields.insert("ipv6.nxt");
+	ignored_fields.insert("ipv6.plen");
+	ignored_fields.insert("ipv6.flow");
+	ignored_fields.insert("ipv6.traffic_class.ce");
+	ignored_fields.insert("ipv6.traffic_class.ect");
+	ignored_fields.insert("ipv6.traffic_class.dscp");
+	ignored_fields.insert("ipv6.class");
+	ignored_fields.insert("ipv6.version");
+	ignored_fields.insert("icmpv6.opt.type");
+	ignored_fields.insert("icmpv6.opt.length");
+	ignored_fields.insert("icmpv6.opt.linkaddr");
+	ignored_fields.insert("icmpv6.opt.target_linkaddr");
+	ignored_fields.insert("icmpv6.opt.src_linkaddr");
+	ignored_fields.insert("icmpv6.nd.na.flag");
+	ignored_fields.insert("icmpv6.nd.na.flag.r");
+	ignored_fields.insert("icmpv6.nd.na.flag.s");
+	ignored_fields.insert("icmpv6.nd.na.flag.o");
+	ignored_fields.insert("icmpv6.nd.na.flag.rsv");
+	ignored_fields.insert("icmpv6.nd.na.target_address");
+	ignored_fields.insert("icmpv6.nd.ns.target_address");
+	ignored_fields.insert("icmpv6.checksum");
+	ignored_fields.insert("icmpv6.code");
+	ignored_fields.insert("icmpv6.type");
+	ignored_fields.insert("icmpv6.reserved");
+	ignored_fields.insert("arp.opcode");
+	ignored_fields.insert("arp.hw.size");
+	ignored_fields.insert("arp.hw.type");
+	ignored_fields.insert("arp.proto.type");
+	ignored_fields.insert("arp.proto.size");
+	ignored_fields.insert("arp.src.hw_mac");
+	ignored_fields.insert("arp.src.proto_ipv4");
+	ignored_fields.insert("arp.dst.hw_mac");
+	ignored_fields.insert("arp.dst.proto_ipv4");
+	ignored_fields.insert("ssl.app_data");
+	ignored_fields.insert("ssl.handshake.ciphersuite");
+	ignored_fields.insert("ssl.handshake.cipher_suites_length");
+	ignored_fields.insert("ssl.handshake.comp_methods_length");
+	ignored_fields.insert("ssl.handshake.comp_method");
+	ignored_fields.insert("ssl.handshake.extensions_length");
+	ignored_fields.insert("ssl.handshake.extensions_server_name_list_len");
+	ignored_fields.insert("ssl.handshake.extensions_server_name_type");
+	ignored_fields.insert("ssl.handshake.extensions_server_name_len");
+	ignored_fields.insert("ssl.handshake.extensions_server_name");
+	ignored_fields.insert("ssl.handshake.extensions_elliptic_curves_length");
+	ignored_fields.insert("ssl.handshake.extensions_elliptic_curve");
+	ignored_fields.insert("ssl.handshake.extensions_ec_point_formats_length");
+	ignored_fields.insert("ssl.handshake.extensions_ec_point_format");
+	ignored_fields.insert("ssl.handshake.extensions_npn");
+	ignored_fields.insert("ssl.handshake.extensions_npn_str_len");
+	ignored_fields.insert("ssl.handshake.extensions_reneg_info_len");
+	ignored_fields.insert("ssl.handshake.extension.type");
+	ignored_fields.insert("ssl.handshake.extension.len");
+	ignored_fields.insert("ssl.handshake.extension.data");
+	ignored_fields.insert("ssl.handshake.type");
+	ignored_fields.insert("ssl.handshake.length");
+	ignored_fields.insert("ssl.handshake.version");
+	ignored_fields.insert("ssl.handshake.random_time");
+	ignored_fields.insert("ssl.handshake.random_bytes");
+	ignored_fields.insert("ssl.handshake.session_id_length");
+	ignored_fields.insert("ssl.handshake.session_id");
+	ignored_fields.insert("ssl.record.length");
+	ignored_fields.insert("ssl.record.version");
+	ignored_fields.insert("ssl.record.content_type");
+	ignored_fields.insert("nbns.id");
+	ignored_fields.insert("nbns.flags");
+	ignored_fields.insert("nbns.flags.response");
+	ignored_fields.insert("nbns.flags.opcode");
+	ignored_fields.insert("nbns.flags.truncated");
+	ignored_fields.insert("nbns.flags.recdesired");
+	ignored_fields.insert("nbns.flags.broadcast");
+	ignored_fields.insert("nbns.flags.authoritative");
+	ignored_fields.insert("nbns.flags.recavail");
+	ignored_fields.insert("nbns.flags.rcode");
+	ignored_fields.insert("nbns.count.queries");
+	ignored_fields.insert("nbns.count.answers");
+	ignored_fields.insert("nbns.count.auth_rr");
+	ignored_fields.insert("nbns.count.add_rr");
+	ignored_fields.insert("nbdgm.type");
+	ignored_fields.insert("nbdgm.next");
+	ignored_fields.insert("nbdgm.first");
+	ignored_fields.insert("nbdgm.node_type");
+	ignored_fields.insert("nbdgm.dgram_id");
+	ignored_fields.insert("nbdgm.src.ip");
+	ignored_fields.insert("nbdgm.src.port");
+	ignored_fields.insert("mailslot.opcode");
+	ignored_fields.insert("mailslot.priority");
+	ignored_fields.insert("mailslot.class");
+	ignored_fields.insert("mailslot.size");
+	ignored_fields.insert("mailslot.name");
+	ignored_fields.insert("macc.opcode");
+	ignored_fields.insert("macc.pause_time");
+	ignored_fields.insert("db-lsp.text");
+	ignored_fields.insert("browser.command");
+	ignored_fields.insert("browser.update_count");
+	ignored_fields.insert("browser.period");
+	ignored_fields.insert("browser.server");
+	ignored_fields.insert("browser.os_major");
+	ignored_fields.insert("browser.os_minor");
+	ignored_fields.insert("browser.server_type");
+	ignored_fields.insert("browser.server_type.workstation");
+	ignored_fields.insert("browser.server_type.server");
+	ignored_fields.insert("browser.server_type.sql");
+	ignored_fields.insert("browser.server_type.domain_controller");
+	ignored_fields.insert("browser.server_type.backup_controller");
+	ignored_fields.insert("browser.server_type.time");
+	ignored_fields.insert("browser.server_type.apple");
+	ignored_fields.insert("browser.server_type.novell");
+	ignored_fields.insert("browser.server_type.member");
+	ignored_fields.insert("browser.server_type.print");
+	ignored_fields.insert("browser.server_type.dialin");
+	ignored_fields.insert("browser.server_type.xenix");
+	ignored_fields.insert("browser.server_type.ntw");
+	ignored_fields.insert("browser.server_type.wfw");
+	ignored_fields.insert("browser.server_type.nts");
+	ignored_fields.insert("browser.server_type.browser.potential");
+	ignored_fields.insert("browser.server_type.browser.backup");
+	ignored_fields.insert("browser.server_type.browser.master");
+	ignored_fields.insert("browser.server_type.browser.domain_master");
+	ignored_fields.insert("browser.server_type.osf");
+	ignored_fields.insert("browser.server_type.vms");
+	ignored_fields.insert("browser.server_type.w95");
+	ignored_fields.insert("browser.server_type.dfs");
+	ignored_fields.insert("browser.server_type.local");
+	ignored_fields.insert("browser.server_type.domainenum");
+	ignored_fields.insert("browser.proto_major");
+	ignored_fields.insert("browser.proto_minor");
+	ignored_fields.insert("browser.sig");
+	ignored_fields.insert("browser.comment");
+	ignored_fields.insert("dns.response_to");
+	ignored_fields.insert("dns.time");
+	ignored_fields.insert("dns.id");
+	ignored_fields.insert("dns.flags");
+	ignored_fields.insert("dns.flags.response");
+	ignored_fields.insert("dns.flags.opcode");
+	ignored_fields.insert("dns.flags.authoritative");
+	ignored_fields.insert("dns.flags.truncated");
+	ignored_fields.insert("dns.flags.recdesired");
+	ignored_fields.insert("dns.flags.recavail");
+	ignored_fields.insert("dns.flags.z");
+	ignored_fields.insert("dns.flags.authenticated");
+	ignored_fields.insert("dns.flags.checkdisable");
+	ignored_fields.insert("dns.flags.rcode");
+	ignored_fields.insert("dns.flags.conflict");
+	ignored_fields.insert("dns.flags.tentative");
+	ignored_fields.insert("dns.count.queries");
+	ignored_fields.insert("dns.count.answers");
+	ignored_fields.insert("dns.count.auth_rr");
+	ignored_fields.insert("dns.count.add_rr");
+	ignored_fields.insert("dns.qry.name");
+	ignored_fields.insert("dns.qry.type");
+	ignored_fields.insert("dns.qry.class");
+	ignored_fields.insert("dns.resp.name");
+	ignored_fields.insert("dns.resp.type");
+	ignored_fields.insert("dns.resp.class");
+	ignored_fields.insert("dns.resp.ttl");
+	ignored_fields.insert("dns.resp.len");
+	ignored_fields.insert("dns.resp.primaryname");
+	ignored_fields.insert("dns.resp.addr");
+	ignored_fields.insert("dcerpc.nt.open_frame");
+	ignored_fields.insert("dcerpc.nt.close_frame");
+	ignored_fields.insert("gss-api.OID");
+	ignored_fields.insert("spnego.negResult");
+	ignored_fields.insert("spnego.MechType");
+	ignored_fields.insert("spnego.mechType");
+	ignored_fields.insert("spnego.mechTypes");
+	ignored_fields.insert("spnego.mechToken");
+	ignored_fields.insert("spnego.mechListMIC");
+	ignored_fields.insert("spnego.supportedMech");
+	ignored_fields.insert("spnego.principal");
+	ignored_fields.insert("spnego.responseToken");
+	ignored_fields.insert("ntlmssp.identifier");
+	ignored_fields.insert("ntlmssp.messagetype");
+	ignored_fields.insert("ntlmssp.authenticate.mic");
+	ignored_fields.insert("ntlmssp.reserved");
+	ignored_fields.insert("ntlmssp.requestnonntsession");
+	ignored_fields.insert("ntlmssp.requesttarget");
+	ignored_fields.insert("ntlmssp.targettypeshare");
+	ignored_fields.insert("ntlmssp.targettypeserver");
+	ignored_fields.insert("ntlmssp.targettypedomain");
+	ignored_fields.insert("ntlmssp.version.ntlm_current_revision");
+	ignored_fields.insert("ntlmssp.version.build_number");
+	ignored_fields.insert("ntlmssp.version.major");
+	ignored_fields.insert("ntlmssp.version.minor");
+	ignored_fields.insert("ntlmssp.negotiateunicode");
+	ignored_fields.insert("ntlmssp.negotiateoem");
+	ignored_fields.insert("ntlmssp.negotiate00000008");
+	ignored_fields.insert("ntlmssp.negotiate00000100");
+	ignored_fields.insert("ntlmssp.negotiate00000800");
+	ignored_fields.insert("ntlmssp.negotiate00004000");
+	ignored_fields.insert("ntlmssp.negotiate04000000");
+	ignored_fields.insert("ntlmssp.negotiate08000000");
+	ignored_fields.insert("ntlmssp.negotiate10000000");
+	ignored_fields.insert("ntlmssp.negotiatent00200000");
+	ignored_fields.insert("ntlmssp.negotiatent01000000");
+	ignored_fields.insert("ntlmssp.negotiatent04000000");
+	ignored_fields.insert("ntlmssp.negotiatent08000000");
+	ignored_fields.insert("ntlmssp.negotiatent10000000");
+	ignored_fields.insert("ntlmssp.negotiatesign");
+	ignored_fields.insert("ntlmssp.negotiateseal");
+	ignored_fields.insert("ntlmssp.negotiatedatagram");
+	ignored_fields.insert("ntlmssp.negotiatelmkey");
+	ignored_fields.insert("ntlmssp.negotiatentlm");
+	ignored_fields.insert("ntlmssp.negotiatentlm2");
+	ignored_fields.insert("ntlmssp.negotiatentonly");
+	ignored_fields.insert("ntlmssp.negotiateoemdomainsupplied");
+	ignored_fields.insert("ntlmssp.negotiateoemworkstationsupplied");
+	ignored_fields.insert("ntlmssp.negotiatealwayssign");
+	ignored_fields.insert("ntlmssp.negotiateidentify");
+	ignored_fields.insert("ntlmssp.negotiateversion");
+	ignored_fields.insert("ntlmssp.negotiatetargetinfo");
+	ignored_fields.insert("ntlmssp.negotiate56");
+	ignored_fields.insert("ntlmssp.negotiate128");
+	ignored_fields.insert("ntlmssp.negotiatekeyexch");
+	ignored_fields.insert("ntlmssp.negotiateflags");
+	ignored_fields.insert("ntlmssp.negotiate.domain");
+	ignored_fields.insert("ntlmssp.negotiate.callingworkstation");
+	ignored_fields.insert("ntlmssp.blob.length");
+	ignored_fields.insert("ntlmssp.blob.maxlen");
+	ignored_fields.insert("ntlmssp.blob.offset");
+	ignored_fields.insert("ntlmssp.string.length");
+	ignored_fields.insert("ntlmssp.string.maxlen");
+	ignored_fields.insert("ntlmssp.string.offset");
+	ignored_fields.insert("ntlmssp.auth.domain");
+	ignored_fields.insert("ntlmssp.auth.username");
+	ignored_fields.insert("ntlmssp.auth.hostname");
+	ignored_fields.insert("ntlmssp.auth.sesskey");
+	ignored_fields.insert("ntlmssp.auth.ntresponse");
+	ignored_fields.insert("ntlmssp.auth.lmresponse");
+	ignored_fields.insert("ntlmssp.ntlmclientchallenge");
+	ignored_fields.insert("ntlmssp.ntlmserverchallenge");
+	ignored_fields.insert("ntlmssp.challenge.target_name");
+	ignored_fields.insert("ntlmssp.challenge.target_info.length");
+	ignored_fields.insert("ntlmssp.challenge.target_info.maxlen");
+	ignored_fields.insert("ntlmssp.challenge.target_info.offset");
+	ignored_fields.insert("ntlmssp.challenge.target_info.item.type");
+	ignored_fields.insert("ntlmssp.challenge.target_info.item.length");
+	ignored_fields.insert("ntlmssp.challenge.target_info.nb_domain_name");
+	ignored_fields.insert("ntlmssp.challenge.target_info.nb_computer_name");
+	ignored_fields.insert("ntlmssp.challenge.target_info.dns_domain_name");
+	ignored_fields.insert("ntlmssp.challenge.target_info.dns_computer_name");
+	ignored_fields.insert("ntlmssp.challenge.target_info.dns_tree_name");
+	ignored_fields.insert("ntlmssp.challenge.target_info.timestamp");
+	ignored_fields.insert("ntlmssp.ntlmv2_response");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.hmac");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.header");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.reserved");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.time");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.chal");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.unknown");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.item.type");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.item.length");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.nb_domain_name");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.nb_computer_name");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.dns_domain_name");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.dns_computer_name");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.dns_tree_name");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.timestamp");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.flags");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.restrictions");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.channel_bindings");
+	ignored_fields.insert("ntlmssp.ntlmv2_response.target_name");
 
 	return type;
 }

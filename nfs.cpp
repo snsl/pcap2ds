@@ -51,7 +51,7 @@ const string nfs::nfs_xml(
   "  <field type=\"int32\" name=\"fid\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"fid.opened_in\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"fid.closed_in\" opt_nullable=\"yes\" />\n"
-  "  <field type=\"int32\" name=\"fid.mapped_in\" opt_nullable=\"yes\" />\n"	// Starting to add nfs properties after this line || N.B. Go back and check that the previous lines are needed
+  "  <field type=\"int32\" name=\"fid.mapped_in\" opt_nullable=\"yes\" />\n"
   "  <field type=\"int32\" name=\"procedure_v4\" />\n"
   "  <field type=\"variable32\" name=\"tag\" />\n"
   "  <field type=\"int32\" name=\"minorversion\" opt_nullable=\"yes\" />\n"
@@ -257,19 +257,6 @@ void nfs::parse(field_info *fi)
 	ExtentTypeFieldInfo &etfi = (*it).second;
 	ExtentType::fieldType ft = etfi.type;
 	Field *field = etfi.field;
-
-	// handle offset special case || May or may not work, NEED TO TEST!!
-/*	if (strcmp(abbrev,"nfs.recc_attr") == 0) {
-		if (fi->hfinfo->type == FT_UINT32) {
-			field = recommended_attr_field;
-			ft = ExtentType::ft_int32;
-		}
-	} else if (strcmp(abbrev,"nfs.Status") == 0) {
-		if (fi->hfinfo->type == FT_UINT32) {
-			field = reply_status_field;
-			ft = ExtentType::ft_int32;
-		}
-	} */
 
 	switch(ft) {
 	case ExtentType::ft_bool:

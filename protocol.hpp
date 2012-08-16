@@ -47,10 +47,10 @@ protected:
 		bool nullable;
 	} ExtentTypeFieldInfo;
 
-	typedef tr1::unordered_map<string,ExtentTypeFieldInfo> FieldMap;	// Can put in .h file somewhere
+	typedef tr1::unordered_map<string,ExtentTypeFieldInfo> FieldMap;
 
 	FieldMap epan2dstype;
-	set<string> ignored_fields;	// Try to see if can work this from each individual cpp file
+	set<string> ignored_fields;
 	set<string> special_case_fields;
 
 public:
@@ -67,7 +67,6 @@ public:
 						ExtentSeries &series,
 						FieldMap &map));
 
-	// According to wiki, polymorphic deletes require a virtual base destructor
 	virtual ~Protocol(){
 	}
 };
